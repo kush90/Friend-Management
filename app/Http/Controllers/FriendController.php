@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Friend;
 use App\User;
 use App\Subscribe;
+use App\Block;
 use DB;
 class FriendController extends Controller
 {
@@ -200,6 +201,17 @@ class FriendController extends Controller
                 ]);
         }
 
+        $subscribe = Subscribe::where("requestor",'=',$requestor->id)
+                ->where("target",'=',$target->id)
+                ->where("subscribe",'=',1)->first();
+
+        // check whether the subscribtion is already make or not by the requested email
+        if(!empty($subscribe)){
+            return response()->json([
+                'success'=> false,
+                'message'=>'You are already subscribed to this email'
+                ]);
+        }
         Subscribe::create([
             "requestor"=>$requestor->id,
             "target"=>$target->id,
@@ -208,13 +220,45 @@ class FriendController extends Controller
 
         return response()->json([
             'success'=>true,
+        ]);        
+    }
+
+    public function block(Request $request){
+        $friends = json_decode($request->getContent(), true);
+
+        
+        // check the email whether the email is in user table or not
+        $requestor = User::Where('email',$friends["requestor"])->first();
+        $target = User::where('email',$friends["target"])->first();
+        if(empty($requestor) || empty($target)){
+            return response()->json([
+                'success'=> false,
+                'message'=>'One of the given email is not found in the system'
+                ]);
+        }
+
+        $block = Block::where("requestor",'=',$requestor->id)
+                ->where("target",'=',$target->id)
+                ->where('block','=',1)
+                ->first();
+
+        // check whether the block is already make or not by the requested email
+        if(!empty($block)){
+            return response()->json([
+                'success'=> false,
+                'message'=>'You are already block to this email'
+                ]);
+        }
+        
+        Block::create([
+            "requestor"=>$requestor->id,
+            "target"=>$target->id,
+            "block"=>1
         ]);
 
-        
-        
-
-        
-        
+        return response()->json([
+            'success'=>true,
+        ]);        
     }
 
 }

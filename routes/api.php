@@ -19,3 +19,4 @@ use Illuminate\Http\Request;
 Route::get('make/friends', 'FriendController@make_friend');
 Route::get('friend/lists','FriendController@friend_lists');
 Route::get('common/friend/lists','FriendController@common_friend_lists');
+Route::get('subscribe','FriendController@subscribe');

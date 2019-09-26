@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 
 use App\Friend;
 use App\User;
+use App\Subscribe;
 use DB;
 class FriendController extends Controller
 {
@@ -183,6 +184,37 @@ class FriendController extends Controller
             ]
         );
        
+    }
+
+    public function subscribe(Request $request){
+        $friends = json_decode($request->getContent(), true);
+
+        
+        // check the email whether the email is in user table or not
+        $requestor = User::Where('email',$friends["requestor"])->first();
+        $target = User::where('email',$friends["target"])->first();
+        if(empty($requestor) || empty($target)){
+            return response()->json([
+                'success'=> false,
+                'message'=>'One of the given email is not found in the system'
+                ]);
+        }
+
+        Subscribe::create([
+            "requestor"=>$requestor->id,
+            "target"=>$target->id,
+            "subscribe"=>1
+        ]);
+
+        return response()->json([
+            'success'=>true,
+        ]);
+
+        
+        
+
+        
+        
     }
 
 }

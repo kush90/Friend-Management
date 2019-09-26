@@ -42,8 +42,21 @@ class FriendController extends Controller
         }
         /* ---------------- End --------------- */
 
-        // Check the two given emails have a friend connection or not in friends table 
+        // Check the two given email have blocked each other or not
+        $blocks = DB::table('blocks')
+        ->whereIn('requestor',$users_in_db)
+        ->whereIn('target',$users_in_db)
+        ->where('block',1)
+        ->first();
 
+        if(!empty($blocks)){
+            return response()->json([
+                'success'=> false,
+                'message'=>'The two given emails have already block each other in the system'
+                ]);
+        }
+
+        // Check the two given emails have a friend connection or not in friends table 
 
         $friends = DB::table('friends')
         ->whereIn('first_user',$users_in_db)
@@ -51,6 +64,9 @@ class FriendController extends Controller
         ->where('friend',1)
         ->first();
 
+
+        
+    
         if(empty($friends)){
             Friend::Create([
                 'first_user'=>$users_in_db[0],

@@ -8,9 +8,11 @@ use App\Friend;
 use App\User;
 use App\Subscribe;
 use App\Block;
+use App\Message;
 use DB;
 class FriendController extends Controller
 {
+    // make a friend connection
     public function make_friend(Request $request){
         
         $friends = json_decode($request->getContent(), true);
@@ -88,6 +90,7 @@ class FriendController extends Controller
         
     }
 
+    // get friend lists by requested email
     public function friend_lists(Request $request){
 
         $email = json_decode($request->getContent(), true);
@@ -126,6 +129,7 @@ class FriendController extends Controller
         
     }
 
+    // get friend lists of between two requested emails
     public function common_friend_lists(Request $request){
 
         $friends = json_decode($request->getContent(), true);
@@ -203,6 +207,7 @@ class FriendController extends Controller
        
     }
 
+    // subscribe to a target email by requested email
     public function subscribe(Request $request){
         $friends = json_decode($request->getContent(), true);
 
@@ -239,6 +244,7 @@ class FriendController extends Controller
         ]);        
     }
 
+    // block the target email by requested email
     public function block(Request $request){
         $friends = json_decode($request->getContent(), true);
 
@@ -275,6 +281,80 @@ class FriendController extends Controller
         return response()->json([
             'success'=>true,
         ]);        
+    }
+
+    //retrieve all email addresses that can receive updates from an email address
+    public function email_lists(Request $request){
+        $email = json_decode($request->getContent(), true);
+
+        // check the email whether the email is in user table or not
+        $sender = User::where('email',$email["sender"])->first();
+        if(empty($sender)){
+            return response()->json([
+                'success'=>false,
+                'message'=> "The given email is not found in the System"
+             ]);
+
+        }
+        // create message  send by requested email
+        Message::create([
+            'sender'=>$sender->id,
+            'text'=>$email["text"]
+        ]);
+
+        // get the friend list of the requested email
+        $friends=Friend::where('first_user',$sender->id)
+        ->orWhere('second_user',$sender->id)
+        ->where('friend',1)->get();
+
+        $friend_lists = [];
+        foreach($friends as $friend){
+
+            if($friend->first_user == $sender->id && $friend->second_user != $sender->id){
+                    array_push($friend_lists,$friend->secondUser);
+            }
+            else{
+                    array_push($friend_lists,$friend->firstUser);
+            }       
+        }
+        
+
+        
+        $email_lists=[];
+        foreach($friend_lists as $friend){
+
+            // check whether the friend lists is blocked by the requestd email or not
+            $block = Block::where('requestor','=',$sender->id)
+            ->where('target','=',$friend->id)
+            ->where('block','=',1)
+            ->first();
+            // if not blocked,get all the subscribtion email lists from the friend lists of the requested email 
+            if(empty($block)){
+                $subscribe = Subscribe::where('requestor','=',$sender->id)
+                ->where('target','=',$friend->id)
+                ->where('subscribe','=',1)
+                ->first();
+               
+               array_push($email_lists,$friend->email);
+            }
+              
+        }
+        if(empty($email_lists)){
+            return response()->json([
+                'success'=> false,
+                'message'=> "There is no email lists"
+            ]);
+        }
+        return response()->json([
+            'success'=>true,
+            'recipients'=>$email_lists
+        ]);
+       
+
+
+
+
+        
     }
 
 }

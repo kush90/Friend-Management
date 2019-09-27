@@ -21,3 +21,4 @@ Route::get('friend/lists','FriendController@friend_lists');
 Route::get('common/friend/lists','FriendController@common_friend_lists');
 Route::get('subscribe','FriendController@subscribe');
 Route::get('block','FriendController@block');
+Route::get('get/emails/lists/by/email','FriendController@email_lists');

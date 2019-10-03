@@ -142,68 +142,61 @@ class FriendController extends Controller
                 'message'=>'One of the given email is not found in the system'
                 ]);
         }
-        
-        // get the first email of the friend connection lists
-        $first_lists=Friend::where('first_user',$users[0]->id)
-                        ->orWhere('second_user',$users[0]->id)
-                        ->where('friend',1)
-                        ->get();
 
-        // get the second email of the friend connection lists
-        $second_lists=Friend::where('first_user',$users[1]->id)
-                        ->orWhere('second_user',$users[1]->id)
+        /* get two friend of the lists from one query*/
+        $results = DB::table('friends')
+                     ->select('*')
+                     ->where('first_user', '=', $users[0]->id)
+                     ->orWhere('second_user','=',$users[0]->id)
+                     ->where('friend',1)
+                     ->union(
+                        DB::table('friends')
+                        ->select('*')
+                        ->where('first_user', '=', $users[1]->id)
+                        ->orWhere('second_user','=',$users[1]->id)
                         ->where('friend',1)
-                        ->get();
+                     )
+                     ->get();
+
         
-        //  get the first email of the friend lists              
-        $firsts = [];
-        foreach($first_lists as $first){
-            if($first->first_user == $users[0]->id && $first->second_user !==$users[0]->id){
-                array_push($firsts,$first->secondUser);
+        
+        $firsts=[];
+        $seconds=[];
+        foreach($results as $result){
+            if($result->first_user == $users[0]->id && $result->second_user != $users[0]->id){
+                array_push($firsts,$result->second_user);
              }
-            else{
-                array_push($firsts,$first->firstUser);
+            if($result->first_user != $users[0]->id && $result->second_user == $users[0]->id){
+                array_push($firsts,$result->first_user);
             }
-                           
-        }
-
-        //  get the second email of the friend lists
-        $seconds = [];
-        foreach($second_lists as $second){
-
-            if($second->first_user == $users[1]->id && $second->second_user !==$users[1]->id){
-                    array_push($seconds,$second->secondUser);
+            if($result->first_user == $users[1]->id && $result->second_user != $users[1]->id){
+                array_push($seconds,$result->second_user);
+             }
+            if($result->first_user != $users[1]->id && $result->second_user == $users[1]->id){
+                array_push($seconds,$result->first_user);
             }
-            else{
-                    array_push($seconds,$second->firstUser);
-            }       
         }
-       
 
         // compare the the first and second email of the friend lists
-       $results;
-       if(count($firsts)>count($seconds)){
-        $results = array_intersect($firsts,$seconds);
-       }
-       else{
-        $results = array_intersect($seconds,$firsts);
-       }
-       
-       // get the email of the compared friend lists
-       $common=[];
-       foreach($results as $result){
-           array_push($common,$result->email);
-       }
+        $common;
+        if(count($firsts)>count($seconds)){
+         $common = array_intersect($firsts,$seconds);
+        }
+        else{
+         $common = array_intersect($seconds,$firsts);
+        }
 
+        $common_emails = User::select('email')->WhereIn('id',$common)->get();
+        
 
         return response()->json(
             [
                 "success"=>true,
-                "friends"=>$common,
-                "count"=>count($common)
-
+                "friends"=>$common_emails,
+                "count"=>count($common_emails)  
             ]
         );
+
        
     }
 
